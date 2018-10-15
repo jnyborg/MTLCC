@@ -24,6 +24,8 @@ class Dataset():
         #    dataroot=os.environ["datadir"]
         # else:
         dataroot = datadir
+        self.datadir = os.path.join(datadir, "data" + section)
+        self.nobs = 5
 
         # csv list of geotransforms of each tile: tileid, xmin, xres, 0, ymax, 0, -yres, srid
         # use querygeotransform.py or querygeotransforms.sh to generate csv
@@ -33,72 +35,71 @@ class Dataset():
         self.geotransforms = dict()
         # https://en.wikipedia.org/wiki/Spatial_reference_system#Identifier
         self.srids = dict()
-        with open(os.path.join(dataroot, "geotransforms.csv"),'r') as f:
-            reader = csv.reader(f, delimiter=',')
-            for row in reader:
-                self.geotransforms[int(row[0])] = (
-                float(row[1]), int(row[2]), int(row[3]), float(row[4]), int(row[5]), int(row[6]))
-                self.srids[int(row[0])] = int(row[7])
+        # with open(os.path.join(dataroot, "geotransforms.csv"),'r') as f:
+        #     reader = csv.reader(f, delimiter=',')
+        #     for row in reader:
+        #         self.geotransforms[int(row[0])] = (
+        #         float(row[1]), int(row[2]), int(row[3]), float(row[4]), int(row[5]), int(row[6]))
+        #         self.srids[int(row[0])] = int(row[7])
 
-
-        classes = os.path.join(dataroot,"classes.txt")
-        with open(classes, 'r') as f:
-            classes = f.readlines()
-
-        self.ids=list()
-        self.classes=list()
-        for row in classes:
-            row=row.replace("\n","")
-            if '|' in row:
-                id,cl = row.split('|')
-                self.ids.append(int(id))
-                self.classes.append(cl)
+        # classes = os.path.join(dataroot,"classes.txt")
+        # with open(classes, 'r') as f:
+        #     classes = f.readlines()
+        #
+        # self.ids=list()
+        # self.classes=list()
+        # for row in classes:
+        #     row=row.replace("\n","")
+        #     if '|' in row:
+        #         id,cl = row.split('|')
+        #         self.ids.append(int(id))
+        #         self.classes.append(cl)
 
         ## create a lookup table to map labelids to dimension ids
 
         # map data ids [0, 1, 2, 3, 5, 6, 8, 9, 12, 13, 15, 16, 17, 19, 22, 23, 24, 25, 26]
-        labids = tf.constant(self.ids, dtype=tf.int64)
+        # labids = tf.constant(self.ids, dtype=tf.int64)
+        #
+        # # to dimensions [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
+        # dimids = tf.constant(range(len(self.ids)), dtype=tf.int64)
+        #
+        # self.id_lookup_table = tf.contrib.lookup.HashTable(tf.contrib.lookup.KeyValueTensorInitializer(labids, dimids),
+        #                                     default_value=-1)
+        #
+        # self.inverse_id_lookup_table = tf.contrib.lookup.HashTable(tf.contrib.lookup.KeyValueTensorInitializer(dimids,labids),
+        #                                     default_value=-1)
 
-        # to dimensions [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
-        dimids = tf.constant(range(len(self.ids)), dtype=tf.int64)
-
-        self.id_lookup_table = tf.contrib.lookup.HashTable(tf.contrib.lookup.KeyValueTensorInitializer(labids, dimids),
-                                            default_value=-1)
-
-        self.inverse_id_lookup_table = tf.contrib.lookup.HashTable(tf.contrib.lookup.KeyValueTensorInitializer(dimids,labids),
-                                            default_value=-1)
-
-        #self.classes = [cl.replace("\n","") for cl in f.readlines()]
-
-        cfgpath = os.path.join(dataroot, "dataset.ini")
-        # load dataset configs
-        datacfg = configparser.ConfigParser()
-        datacfg.read(cfgpath)
-        cfg = datacfg[section]
-
-        self.tileidfolder = os.path.join(dataroot, "tileids")
-        self.datadir = os.path.join(dataroot, cfg["datadir"])
-
-        assert 'pix10' in cfg.keys()
-        assert 'nobs' in cfg.keys()
-        assert 'nbands10' in cfg.keys()
-        assert 'nbands20' in cfg.keys()
-        assert 'nbands60' in cfg.keys()
-
-        self.tiletable=cfg["tiletable"]
-
-        self.nobs = int(cfg["nobs"])
-
-        self.expected_shapes = self.calc_expected_shapes(int(cfg["pix10"]),
-                                                         int(cfg["nobs"]),
-                                                         int(cfg["nbands10"]),
-                                                         int(cfg["nbands20"]),
-                                                         int(cfg["nbands60"])
-                                                         )
-
-
-        # expected datatypes as read from disk
-        self.expected_datatypes = (tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.int64)
+        # #self.classes = [cl.replace("\n","") for cl in f.readlines()]
+        #
+        # cfgpath = os.path.join(dataroot, "dataset.ini")
+        # # load dataset configs
+        # datacfg = configparser.ConfigParser()
+        # datacfg.read(cfgpath)
+        # cfg = datacfg[section]
+        #
+        # self.tileidfolder = os.path.join(dataroot, "tileids")
+        # self.datadir = os.path.join(dataroot, cfg["datadir"])
+        #
+        # assert 'pix10' in cfg.keys()
+        # assert 'nobs' in cfg.keys()
+        # assert 'nbands10' in cfg.keys()
+        # assert 'nbands20' in cfg.keys()
+        # assert 'nbands60' in cfg.keys()
+        #
+        # self.tiletable=cfg["tiletable"]
+        #
+        # self.nobs = int(cfg["nobs"])
+        #
+        # self.expected_shapes = self.calc_expected_shapes(int(cfg["pix10"]),
+        #                                                  int(cfg["nobs"]),
+        #                                                  int(cfg["nbands10"]),
+        #                                                  int(cfg["nbands20"]),
+        #                                                  int(cfg["nbands60"])
+        #                                                  )
+        #
+        #
+        # # expected datatypes as read from disk
+        # self.expected_datatypes = (tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.int64)
 
     def calc_expected_shapes(self, pix10, nobs, bands10, bands20, bands60):
         pix20 = pix10 / 2;
@@ -112,7 +113,7 @@ class Dataset():
 
         return [x10shape, x20shape, x60shape, doyshape, yearshape, labelshape]
 
-    def transform_labels(self,feature):
+    def transform_labels(self, feature):
         """
         1. take only first labelmap, as labels are not supposed to change
         2. perform label lookup as stored label ids might be not sequential labelid:[0,3,4] -> dimid:[0,1,2]
@@ -122,7 +123,7 @@ class Dataset():
 
         # take first label time [46,24,24] -> [24,24]
         # labels are not supposed to change over the time series
-        #labels = labels[0]
+        # labels = labels[0]
         labels = self.id_lookup_table.lookup(labels)
 
         return x10, x20, x60, doy, year, labels
@@ -137,7 +138,7 @@ class Dataset():
         doy = tf.cast(doy, tf.float32) / 365
 
         # year = (2016 - tf.cast(year, tf.float32)) / 2017
-        year = tf.cast(year, tf.float32) - 2016
+        year = tf.cast(year, tf.float32) - 2017
 
         return x10, x20, x60, doy, year, labels
 
@@ -156,7 +157,6 @@ class Dataset():
         x60 = tf.cond(condition, lambda: tf.reverse(x60, axis=[1]), lambda: x60)
         labels = tf.cond(condition, lambda: tf.reverse(labels, axis=[1]), lambda: labels)
 
-
         ## Flip LR
 
         # roll the dice
@@ -169,7 +169,6 @@ class Dataset():
         labels = tf.cond(condition, lambda: tf.reverse(labels, axis=[2]), lambda: labels)
 
         return x10, x20, x60, doy, year, labels
-
 
     def temporal_sample(self, feature):
         """ randomy choose <self.temp_samples> elements from temporal sequence """
@@ -232,33 +231,34 @@ class Dataset():
                           drop_remainder=False, overwrite_ids=None):
 
         # set of ids as present in database of given partition (train/test/eval) and fold (0-9)
-        allids = self.get_ids(partition=partition, fold=fold)
+        # allids = self.get_ids(partition=partition, fold=fold)
 
         # set of ids present in local folder (e.g. 1.tfrecord)
-        tiles = os.listdir(self.datadir)
 
-        if tiles[0].endswith(".gz"):
-            compression = "GZIP"
-            ext = ".tfrecord.gz"
-        else:
-            compression = ""
-            ext = ".tfrecord"
+        # partition is train, val or test
+        tiles = os.listdir(os.path.join(self.datadir, partition))
 
-        downloaded_ids = [int(t.replace(".gz", "").replace(".tfrecord", "")) for t in tiles]
+        # if tiles[0].endswith(".gz"):
+        #     compression = "GZIP"
+        #     ext = ".tfrecord.gz"
+        # else:
+        #     compression = ""
+        #     ext = ".tfrecord"
+        #
+        # downloaded_ids = [int(t.replace(".gz", "").replace(".tfrecord", "")) for t in tiles]
+        #
+        # # intersection of available ids and partition ods
+        # if overwrite_ids is None:
+        #     ids = list(set(downloaded_ids).intersection(allids))
+        # else:
+        #     print "overwriting data ids! due to manual input"
+        #     ids = overwrite_ids
 
-        # intersection of available ids and partition ods
-        if overwrite_ids is None:
-            ids = list(set(downloaded_ids).intersection(allids))
-        else:
-            print "overwriting data ids! due to manual input"
-            ids = overwrite_ids
+        filenames = [os.path.join(self.datadir, partition, tile) for tile in tiles]
 
-
-        filenames = [os.path.join(self.datadir, str(id) + ext) for id in ids]
-
-        if self.verbose:
-            print "dataset: {}, partition: {}, fold:{} {}/{} tiles downloaded ({:.2f} %)".format(self.section, partition, fold, len(ids), len(allids),
-                                                                               len(ids) / float(len(allids)) * 100)
+        # if self.verbose:
+        #     print "dataset: {}, partition: {}, fold:{} {}/{} tiles downloaded ({:.2f} %)".format(self.section, partition, fold, len(ids), len(allids),
+        #                                                                        len(ids) / float(len(allids)) * 100)
 
         def mapping_function(serialized_feature):
             # read data from .tfrecords
@@ -270,10 +270,10 @@ class Dataset():
             # perform data augmentation
             if self.augment: feature = self.augment(feature)
             # replace potentially non sequential labelids with sequential dimension ids
-            feature = self.transform_labels(feature)
+
+            # feature = self.transform_labels(feature)
+
             return feature
-
-
 
         if num_batches > 0:
             filenames = filenames[0:num_batches * batchsize]
@@ -282,7 +282,7 @@ class Dataset():
         if shuffle:
             filenames = tf.random_shuffle(filenames)
 
-        dataset = tf.data.TFRecordDataset(filenames, compression_type=compression)
+        dataset = tf.data.TFRecordDataset(filenames)
 
         dataset = dataset.map(mapping_function, num_parallel_calls=threads)
 
@@ -303,18 +303,15 @@ class Dataset():
 
         # assign output_shape to dataset
 
-        # modelshapes are expected shapes of the data stacked as batch
-        output_shape = []
-        for shape in self.expected_shapes:
-            output_shape.append(tf.TensorShape((batchsize,) + shape))
-
-        return dataset, output_shape, self.expected_datatypes, filenames
+        return dataset, filenames
 
 
 def main():
-    dataset = Dataset(datadir="/media/data/marc/tfrecords/fields/L1C/480", verbose=True, temporal_samples=30,section="2016")
+    dataset = Dataset(datadir="/media/data/marc/tfrecords/fields/L1C/480", verbose=True, temporal_samples=30,
+                      section="2016")
 
-    training_dataset, output_shapes, output_datatypes, fm_train = dataset.create_tf_dataset("train", 0, 1, 5, True, 32)
+    training_dataset, output_shapes, output_datatypes, fm_train = \
+        dataset.create_tf_dataset("train", 0, 1, 5, True, 32)
 
     iterator = training_dataset.make_initializable_iterator()
 

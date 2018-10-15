@@ -47,15 +47,13 @@ def setupDatasets(args):
     assert args.datadir
     # assert args.temporal_samples
 
-
-
-    datasets_dict=dict()
-    for section in ['2016','2017']:
-        datasets_dict[section]=dict()
+    datasets_dict = dict()
+    for section in ['2017', '2018']:
+        datasets_dict[section] = dict()
         dataset = Dataset(datadir=args.datadir, verbose=True, temporal_samples=args.temporal_samples, section=section)
         for partition in [TRAINING_IDS_IDENTIFIER, TESTING_IDS_IDENTIFIER]:
             datasets_dict[section][partition] = dict()
-            tfdataset, _, _, filenames = dataset.create_tf_dataset(partition,
+            tfdataset, filenames = dataset.create_tf_dataset(partition,
                                                                    args.fold,
                                                                    args.batchsize,
                                                                    args.shuffle,
@@ -63,9 +61,9 @@ def setupDatasets(args):
                                                                    num_batches=args.limit_batches)
             iterator = tfdataset.make_initializable_iterator()
 
-            datasets_dict[section][partition]["iterator"]=iterator
-            datasets_dict[section][partition]["filenames"]=filenames
-            #dataset_list.append({'sec':section,'id':identifier,'iterator':iterator,'filenames':filenames})
+            datasets_dict[section][partition]["iterator"] = iterator
+            datasets_dict[section][partition]["filenames"] = filenames
+            # dataset_list.append({'sec':section,'id':identifier,'iterator':iterator,'filenames':filenames})
 
     return datasets_dict
 
@@ -77,11 +75,10 @@ def train(args, datasets):
     assert args.save_frequency
     assert args.train_on
 
-
     # training_iterator, fn_train = training_package
     # validate_iterator, fn_test = validate_package
     num_samples = 0
-    for dataset in set(args.train_on): # conversion to set removes duplicates
+    for dataset in set(args.train_on):  # conversion to set removes duplicates
         num_samples += int(datasets[dataset]["train"]["filenames"].get_shape()[0])
 
     # if if num batches artificially reduced -> adapt sample size
@@ -127,13 +124,9 @@ def train(args, datasets):
                 msg = "{}/{}: cross entropy: {:.2f}, overall accuracy {:.2f}"
                 print(msg.format(dataset, partition, xe, oa))
 
-        #ops = [tf.summary.merge_all(), cross_entropy_op, overall_accuracy_op]
-        #sum, xe_te, oa_te = sess.run(ops, feed_dict={iterator_handle_op: validate_handle, is_train_op: False})
-        #test_writer.add_summary(sum, samples)
-
-
-
-
+        # ops = [tf.summary.merge_all(), cross_entropy_op, overall_accuracy_op]
+        # sum, xe_te, oa_te = sess.run(ops, feed_dict={iterator_handle_op: validate_handle, is_train_op: False})
+        # test_writer.add_summary(sum, samples)
 
         return cur_epoch
 
@@ -155,9 +148,9 @@ def train(args, datasets):
             for partition in datasets[dataset].keys():
                 # mark partition, which will be used for training with capital letters
                 if (dataset in args.train_on) and (partition == 'train'):
-                    summaryname=partition+dataset+"(t)"
+                    summaryname = partition + dataset + "(t)"
                 else:
-                    summaryname=partition+dataset
+                    summaryname = partition + dataset
 
                 iterator = datasets[dataset][partition]["iterator"]
                 datasets[dataset][partition]["handle"] = sess.run(iterator.string_handle())
@@ -165,7 +158,7 @@ def train(args, datasets):
                 writer = tf.summary.FileWriter(os.path.join(args.modeldir, summaryname), sess.graph)
                 datasets[dataset][partition]["writer"] = writer
 
-                print "initializing dataset {}, partition {}".format(dataset,partition)
+                print "initializing dataset {}, partition {}".format(dataset, partition)
                 sess.run([iterator.initializer])
 
         latest_ckpt = tf.train.latest_checkpoint(args.modeldir)
@@ -180,14 +173,14 @@ def train(args, datasets):
 
                 for dataset in args.train_on:
                     # normal training operation
-                    print "{} {} training step {}...".format(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),dataset, step)
+                    print "{} {} training step {}...".format(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                                             dataset, step)
 
                     feed_dict = {iterator_handle_op: datasets[dataset]["train"]["handle"], is_train_op: True}
                     if args.learning_rate is not None:
                         feed_dict[learning_rate_op] = args.learning_rate
 
                     sess.run(train_op, feed_dict=feed_dict)
-
 
                     # write summary
                     if step % args.summary_frequency == 0:
@@ -220,7 +213,8 @@ if __name__ == "__main__":
     parser.add_argument('--datadir', type=str, default=None,
                         help='directory containing the data (defaults to environment variable $datadir)')
     parser.add_argument('-g', '--gpu', type=str, default="0", help='GPU')
-    parser.add_argument('-d','--train_on', type=str, default="2016",nargs='+', help='Dataset partition to train on. Datasets are defined as sections in dataset.ini in datadir')
+    parser.add_argument('-d', '--train_on', type=str, default="2016", nargs='+',
+                        help='Dataset partition to train on. Datasets are defined as sections in dataset.ini in datadir')
     parser.add_argument('-b', '--batchsize', type=int, default=16, help='batchsize')
     parser.add_argument('-v', '--verbose', action="store_true", help='verbosity')
     # parser.add_argument('-o', '--overwrite', action="store_true", help='overwrite graph. may lead to problems with checkpoints compatibility')
